@@ -205,8 +205,8 @@ decisio-io/
 ```bash
 # Local
 git init && git add . && git commit -m "feat: semana 1 — backend completo"
-git remote add origin git@github.com:tu-usuario/decisio-io.git
-git push -u origin main
+git remote add origin git@github.com:tu-usuario/decisio.git
+git push -u origin master
 
 # VPS (una sola vez)
 git clone git@github.com:tu-usuario/decisio-io.git

@@ -9,11 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.db import connection as db
 from app.api.routes import decision, trace, metrics, cases
+from app.logging_config import configure_json_logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-)
+configure_json_logging(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

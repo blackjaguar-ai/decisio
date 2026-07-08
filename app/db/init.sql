@@ -9,8 +9,29 @@ CREATE TABLE IF NOT EXISTS decisions (
     approved_amount NUMERIC(12, 2),
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     resolved_at     TIMESTAMPTZ,
-    decided_by      TEXT
+    decided_by      TEXT,
+    offer_id        TEXT,
+    rules_version   TEXT,
+    selected_amount NUMERIC(12, 2),
+    notice_type     TEXT,
+    idempotency_key TEXT,
+    response_json   JSONB
 );
+
+-- Migración idempotente para instalaciones existentes (el VPS ya tenía esta tabla
+-- creada antes de que estas columnas existieran).
+ALTER TABLE decisions ADD COLUMN IF NOT EXISTS offer_id        TEXT;
+ALTER TABLE decisions ADD COLUMN IF NOT EXISTS rules_version   TEXT;
+ALTER TABLE decisions ADD COLUMN IF NOT EXISTS selected_amount NUMERIC(12, 2);
+ALTER TABLE decisions ADD COLUMN IF NOT EXISTS notice_type     TEXT;
+ALTER TABLE decisions ADD COLUMN IF NOT EXISTS idempotency_key TEXT;
+ALTER TABLE decisions ADD COLUMN IF NOT EXISTS response_json   JSONB;
+
+-- Fix #8: una idempotency_key no puede mapear a dos decisiones distintas.
+-- Índice parcial (solo sobre valores no nulos) porque la mayoría de requests
+-- de demo no la mandan.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_decisions_idempotency_key
+    ON decisions(idempotency_key) WHERE idempotency_key IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS traces (
     id          BIGSERIAL PRIMARY KEY,

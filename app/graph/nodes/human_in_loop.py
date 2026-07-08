@@ -12,15 +12,23 @@ logger = logging.getLogger(__name__)
 
 
 async def human_in_loop_node(state: CreditState) -> dict:
-    decision_id   = state["decision_id"]
-    customer      = state["customer"]
-    rules_result  = state["rules_result"]
-    ai_assessment = state.get("ai_assessment", {})
+    decision_id          = state["decision_id"]
+    ai_assessment        = state.get("ai_assessment", {})
+    revalidation_result  = state.get("revalidation_result", {})
 
-    # Persistir el caso en la bandeja de agentes
-    escalation_reason = "; ".join(
-        r.get("reason", "") for r in rules_result.get("triggered_rules", [])
-    ) or "Escalamiento por política de monto"
+    triggered_reasons = [
+        r.get("reason", "") for r in revalidation_result.get("triggered_rules", [])
+    ]
+
+    # Fix #3: si se llega aquí directo desde ingest (payload incompleto, cortando
+    # el flujo antes de rules_engine), triggered_reasons está vacío — no usar el
+    # mensaje genérico, decir explícitamente qué campo faltó.
+    if not triggered_reasons:
+        ingest_step = next((s for s in state.get("trace", []) if s.get("step") == "ingest"), None)
+        if ingest_step and ingest_step.get("missing_fields"):
+            triggered_reasons = [f"Payload incompleto: {', '.join(ingest_step['missing_fields'])}"]
+
+    escalation_reason = "; ".join(triggered_reasons) or "Escalamiento por hallazgo en revalidación"
 
     try:
         await db.execute(
@@ -49,6 +57,7 @@ async def human_in_loop_node(state: CreditState) -> dict:
             "outcome": "pending_human",
             "approved_amount": None,
             "decided_by": "human_pending",
+            "notice_type": None,
         },
         "trace": state["trace"] + [{"step": "human_in_loop",
                                     "status": "escalated",

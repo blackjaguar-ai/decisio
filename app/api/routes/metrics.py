@@ -10,8 +10,8 @@ async def get_metrics():
         """
         SELECT
             COUNT(*) as total,
-            SUM(CASE WHEN final_outcome = 'approved'      THEN 1 ELSE 0 END) as approved,
-            SUM(CASE WHEN final_outcome = 'rejected'      THEN 1 ELSE 0 END) as rejected,
+            SUM(CASE WHEN final_outcome = 'honored'       THEN 1 ELSE 0 END) as honored,
+            SUM(CASE WHEN final_outcome = 'revoked'       THEN 1 ELSE 0 END) as revoked,
             SUM(CASE WHEN final_outcome = 'pending_human' THEN 1 ELSE 0 END) as pending_human
         FROM decisions
         """
@@ -22,7 +22,7 @@ async def get_metrics():
             AVG(latency_ms)                                          as avg_ms,
             MIN(latency_ms)                                          as min_ms,
             MAX(latency_ms)                                          as max_ms,
-            AVG(CASE WHEN path = 'auto_approved'   THEN latency_ms END) as avg_auto_ms,
+            AVG(CASE WHEN path = 'auto_honored'    THEN latency_ms END) as avg_auto_ms,
             AVG(CASE WHEN path = 'human_escalated' THEN latency_ms END) as avg_human_ms
         FROM metrics
         """
@@ -34,8 +34,8 @@ async def get_metrics():
     return {
         "totals": {
             "total":        totals["total"] or 0,
-            "approved":     totals["approved"] or 0,
-            "rejected":     totals["rejected"] or 0,
+            "honored":      totals["honored"] or 0,
+            "revoked":      totals["revoked"] or 0,
             "pending_human":totals["pending_human"] or 0,
         },
         "latency_ms": {
