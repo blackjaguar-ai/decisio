@@ -9,6 +9,22 @@ segundo intento: extraer el primer bloque {...} balanceado del texto crudo.
 Fix #7 — timeout explícito + un reintento antes de rendirse al fallback
 determinístico. El argumento central de la demo es "8 segundos vs 72 horas";
 si la API externa se cuelga sin timeout, ese cronómetro se rompe en vivo.
+
+Fix #7.1 (encontrado en pruebas contra el VPS real) — el Anthropic SDK trae
+`max_retries=2` por defecto en el cliente. Como `ai_assessor.py` y
+`ai_explainer.py` instanciaban `Anthropic()` sin desactivarlo, cada llamada a
+`.messages.create()` podía reintentar hasta 3 veces por dentro del propio SDK
+(con sleep de backoff entre medio) — apilado sobre las 2 vueltas de `call_llm`.
+Resultado real medido: hasta 6 intentos de red por nodo, ~83s en un caso de
+`hallazgo_menor` (dos nodos secuenciales), cayendo al fallback genérico pese a
+que la API sí respondía, solo que mucho después de lo que el pitch tolera.
+Ambos nodos deben instanciar el cliente con `Anthropic(max_retries=0)` — el
+reintento vive únicamente en `call_llm`, una sola capa, con presupuesto de
+tiempo predecible.
+
+LLM_TIMEOUT_SECONDS se recalibró a partir de latencia real observada: una
+llamada exitosa sin reintentos ronda 8-9s en este VPS; 20s da margen para
+jitter de red real sin abrir la puerta a esperas de un minuto por llamada.
 """
 
 import json

@@ -59,18 +59,20 @@ async def finalize_node(state: CreditState) -> dict:
         await db.execute(
             """
             INSERT INTO decisions (id, customer_id, route, final_outcome, approved_amount,
-                                    decided_by, offer_id, rules_version, selected_amount, notice_type)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                                    decided_by, offer_id, rules_version, selected_amount, notice_type,
+                                    explanation)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 final_outcome   = EXCLUDED.final_outcome,
                 approved_amount = EXCLUDED.approved_amount,
                 decided_by      = EXCLUDED.decided_by,
                 notice_type     = EXCLUDED.notice_type,
+                explanation     = EXCLUDED.explanation,
                 resolved_at     = NOW()
             """,
             (decision_id, customer.get("customer_id", "unknown"), route, outcome,
              approved_amount, decided_by, offer.get("offer_id"), offer.get("rules_version"),
-             selected_amount, notice_type),
+             selected_amount, notice_type, json.dumps(state.get("ai_explanation", {}), default=str)),
         )
     except Exception as e:
         logger.error("finalize | %s | db error insertando decisions: %s", decision_id, e)

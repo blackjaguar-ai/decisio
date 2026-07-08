@@ -1,11 +1,15 @@
 # DECISIO — Motor de Crédito iO
 
-Motor de decisión crediticia. LangGraph + FastAPI + PostgreSQL + Claude Sonnet 4.6.
+Motor de decisión crediticia. LangGraph + FastAPI + PostgreSQL + Claude Sonnet 4.6 + React.
 Demo para primera reunión con Banco iO.
+
+**Estado: Semana 2 completa.** Backend con human-in-the-loop real (`interrupt()` +
+`AsyncPostgresSaver`) y frontend funcional (vista cliente + vista agente). Ver
+`Handoff_Semana2_HITL_Frontend.md` para el detalle técnico de esta ronda.
 
 ---
 
-## Setup paso a paso
+## Setup — Backend
 
 ### Paso 1 — Variables de entorno
 
@@ -13,11 +17,7 @@ Demo para primera reunión con Banco iO.
 cp .env.example .env
 ```
 
-Abrir `.env` y poner la `ANTHROPIC_API_KEY`. El resto de valores funcionan tal cual para desarrollo local.
-
-**Verificar:** el archivo `.env` existe y tiene la API key. No está en el repo (está en `.gitignore`).
-
----
+Poner `ANTHROPIC_API_KEY`. El resto de valores funcionan tal cual para desarrollo local.
 
 ### Paso 2 — Dependencias Python
 
@@ -25,13 +25,7 @@ Abrir `.env` y poner la `ANTHROPIC_API_KEY`. El resto de valores funcionan tal c
 pip install -r requirements.txt
 ```
 
-**Verificar:**
-```bash
-python -c "from langgraph.graph import StateGraph; from anthropic import Anthropic; import psycopg; print('OK')"
-```
-Debe imprimir `OK` sin errores.
-
----
+Incluye `langgraph-checkpoint-postgres` (nuevo en Semana 2 — checkpointer real).
 
 ### Paso 3 — Levantar Postgres
 
@@ -39,19 +33,13 @@ Debe imprimir `OK` sin errores.
 docker compose up -d postgres
 ```
 
-**Verificar:**
-```bash
-docker compose ps
-```
-El contenedor `decisio_db` debe estar en estado `healthy`. Si dice `starting`, esperar 10 segundos y volver a correr el comando. El schema se crea automáticamente desde `app/db/init.sql`.
+**Si el volumen de Postgres ya existía de Semana 1**, correr la migración a mano
+(agrega `explanation`/`context`/columnas de idempotencia que `ADD COLUMN IF NOT
+EXISTS` no reaplica solo):
 
-Para confirmar que las tablas existen:
 ```bash
-docker exec -it decisio_db psql -U decisio -c "\dt"
+docker compose exec -T postgres psql -U decisio -d decisio < app/db/init.sql
 ```
-Debe mostrar: `decisions`, `traces`, `cases`, `metrics`.
-
----
 
 ### Paso 4 — Levantar el servidor
 
@@ -59,201 +47,64 @@ Debe mostrar: `decisions`, `traces`, `cases`, `metrics`.
 PYTHONPATH=. uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**Verificar:**
-```bash
-curl http://localhost:8000/health
+Logs esperados en el arranque:
 ```
-Respuesta esperada:
-```json
-{"status": "ok", "db": "2026-07-06 ..."}
-```
-
-Los logs del servidor deben mostrar:
-```
-DECISIO — online
-Postgres pool inicializado
+Postgres pool inicializado (autocommit=True)
+checkpointer | AsyncPostgresSaver.setup() OK — tablas de checkpoint listas
+graph | compilado con checkpointer Postgres — interrupt()/resume habilitado
+DECISIO — online (HITL real con interrupt()/AsyncPostgresSaver)
 ```
 
----
+**autocommit=True es obligatorio** desde esta ronda — sin eso, `checkpointer.setup()`
+revienta porque sus migraciones corren `CREATE INDEX CONCURRENTLY`, que Postgres
+prohíbe dentro de una transacción explícita. Ver comentario en `app/db/connection.py`.
 
-### Paso 5 — Test de los 4 caminos (Día 10)
-
-Con el servidor corriendo, en otra terminal:
+### Paso 5 — Test de las 8 rutas
 
 ```bash
 PYTHONPATH=. python tests/test_paths.py
 ```
 
-Resultado esperado:
+Debe dar `8/8 tests pasaron`. Los 4 perfiles de `hallazgo_menor`/staleness/anómalos
+quedan en `pending_human` — es esperado, ya no se auto-resuelven como en Semana 1
+placeholder. Para cerrarlos manualmente:
+
+```bash
+curl http://localhost:8000/cases                              # ver bandeja
+curl -X POST http://localhost:8000/cases/{id}/resolve \
+  -H "Content-Type: application/json" \
+  -d '{"action":"honor","resolved_by":"tu_usuario"}'
 ```
-══════════════════════════════════════════════════════
-  DECISIO — Test 4 Caminos | Semana 1 Día 10
-══════════════════════════════════════════════════════
-  ✓ Servidor online
 
-  clean_approval_1
-  Esperado: approved
-  Resultado : approved
-  Route     : auto | Latencia: ~2000ms
-  ✓ PASS
-
-  gray_zone_1
-  Esperado: pending_human
-  Resultado : pending_human
-  Route     : human | Latencia: ~3000ms
-  ✓ PASS
-
-  high_amount
-  Esperado: pending_human
-  Resultado : pending_human
-  Route     : human | Latencia: ~250# DECISIO — Motor de Crédito iO
-
-Motor de decisión crediticia. LangGraph + FastAPI + PostgreSQL + Claude Sonnet 4.6.
-Demo para primera reunión con Banco iO.
+`action` acepta `honor` / `adjust` (requiere `adjusted_amount`) / `revoke`.
 
 ---
 
-## Setup paso a paso
-
-### Paso 1 — Variables de entorno
+## Setup — Frontend
 
 ```bash
-cp .env.example .env
+cd frontend
+npm install
+npm run dev
 ```
 
-Abrir `.env` y poner la `ANTHROPIC_API_KEY`. El resto de valores funcionan tal cual para desarrollo local.
+Abre `http://localhost:5173`. El dev server proxea `/decision`, `/cases`,
+`/trace`, `/metrics`, `/health` hacia `http://localhost:8000` (ver
+`vite.config.js`) — sin esto correr `npm run dev` solo, el fetch a rutas
+relativas no llega a ningún lado.
 
-**Verificar:** el archivo `.env` existe y tiene la API key. No está en el repo (está en `.gitignore`).
+Dos vistas, switcheables desde el header:
+- **Vista cliente**: simula tocar la notificación push de uno de los 8 perfiles
+  curados (espejo exacto de `data/profiles.py` en `src/demoProfiles.js`) → oferta
+  con slider → verificación de identidad (contraseña, proxy de demo) → llamada
+  real a `POST /decision` → resultado con cronómetro real y comparativo Interbank.
+  Si el caso escala a un agente, hace polling real a `GET /decision/{id}` hasta
+  que se resuelve — sin websockets, fuera de alcance de la demo.
+- **Vista agente**: bandeja de casos pendientes (polling a `GET /cases`), detalle
+  con perfil completo del cliente + oferta + razonamiento AI, y resolución con un
+  clic (honrar / ajustar / revocar) contra `POST /cases/{id}/resolve`.
 
----
-
-### Paso 2 — Dependencias Python
-
-```bash
-pip install -r requirements.txt
-```
-
-**Verificar:**
-```bash
-python -c "from langgraph.graph import StateGraph; from anthropic import Anthropic; import psycopg; print('OK')"
-```
-Debe imprimir `OK` sin errores.
-
----
-
-### Paso 3 — Levantar Postgres
-
-```bash
-docker compose up -d postgres
-```
-
-**Verificar:**
-```bash
-docker compose ps
-```
-El contenedor `decisio_db` debe estar en estado `healthy`. Si dice `starting`, esperar 10 segundos y volver a correr el comando. El schema se crea automáticamente desde `app/db/init.sql`.
-
-Para confirmar que las tablas existen:
-```bash
-docker exec -it decisio_db psql -U decisio -c "\dt"
-```
-Debe mostrar: `decisions`, `traces`, `cases`, `metrics`.
-
----
-
-### Paso 4 — Levantar el servidor
-
-```bash
-PYTHONPATH=. uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-**Verificar:**
-```bash
-curl http://localhost:8000/health
-```
-Respuesta esperada:
-```json
-{"status": "ok", "db": "2026-07-06 ..."}
-```
-
-Los logs del servidor deben mostrar:
-```
-DECISIO — online
-Postgres pool inicializado
-```
-
----
-
-### Paso 5 — Test de los 4 caminos (Día 10)
-
-Con el servidor corriendo, en otra terminal:
-
-```bash
-PYTHONPATH=. python tests/test_paths.py
-```
-
-Resultado esperado:
-```
-══════════════════════════════════════════════════════
-  DECISIO — Test 4 Caminos | Semana 1 Día 10
-══════════════════════════════════════════════════════
-  ✓ Servidor online
-
-  clean_approval_1
-  Esperado: approved
-  Resultado : approved
-  Route     : auto | Latencia: ~2000ms
-  ✓ PASS
-
-  gray_zone_1
-  Esperado: pending_human
-  Resultado : pending_human
-  Route     : human | Latencia: ~3000ms
-  ✓ PASS
-
-  high_amount
-  Esperado: pending_human
-  Resultado : pending_human
-  Route     : human | Latencia: ~2500ms
-  ✓ PASS
-
-  hard_rejection
-  Esperado: rejected
-  Resultado : rejected
-  Route     : auto | Latencia: ~2000ms
-  ✓ PASS
-
-  RESULTADO: 4/4 tests pasaron
-```
-
----
-
-### Paso 6 — Verificar trazabilidad (opcional pero recomendado)
-
-Tomar un `decision_id` del output del test anterior y consultar el trace completo:
-
-```bash
-curl http://localhost:8000/trace/{decision_id} | python -m json.tool
-```
-
-Debe retornar el timeline completo: ingest → rules_engine → ai_explainer → pre_guardrails → guardrails → auto_decision/human_in_loop → finalize.
-
----
-
-### Paso 7 — Verificar métricas
-
-```bash
-curl http://localhost:8000/metrics | python -m json.tool
-```
-
-Respuesta esperada (después de correr los 4 tests):
-```json
-{
-  "totals": {"total": 4, "approved": 1, "rejected": 1, "pending_human": 2},
-  "latency_ms": {"avg": 2300.0, ...},
-  "path_distribution": {"auto_approved": 1, "auto_rejected": 1, "human_escalated": 2}
-}
-```
+`npm run build` genera `dist/` — validado que compila limpio antes de esta entrega.
 
 ---
 
@@ -262,33 +113,42 @@ Respuesta esperada (después de correr los 4 tests):
 ```
 decisio-io/
 ├── app/
-│   ├── main.py                        # FastAPI entry point
+│   ├── main.py                        # FastAPI — arranca pool, checkpointer y grafo en orden
 │   ├── graph/
-│   │   ├── state.py                   # CreditState TypedDict
-│   │   ├── graph.py                   # Grafo LangGraph compilado
+│   │   ├── state.py
+│   │   ├── graph.py                   # Compilación diferida + interrupt()/resume
+│   │   ├── checkpointer.py            # NUEVO — AsyncPostgresSaver sobre el pool compartido
 │   │   └── nodes/
-│   │       ├── ingest.py              # Normaliza y valida el perfil
-│   │       ├── rules_engine.py        # Reglas determinísticas (sin AI)
-│   │       ├── ai_assessor.py         # LLM evalúa zona gris
-│   │       ├── ai_explainer.py        # LLM genera justificación auditable
-│   │       ├── guardrails.py          # Límites duros post-decisión
-│   │       ├── auto_decision.py       # Aplica decisión automática
-│   │       ├── human_in_loop.py       # Placeholder → interrupt() en Semana 2
-│   │       └── finalize.py            # Consolida y persiste en Postgres
+│   │       ├── ingest.py
+│   │       ├── bounds_check.py        # G1 (bounds monto) + G4 (inputs anómalos)
+│   │       ├── rules_engine.py
+│   │       ├── ai_assessor.py
+│   │       ├── ai_explainer.py
+│   │       ├── guardrails.py          # G2 (coherencia regla-AI) + G3 (confianza mínima)
+│   │       ├── auto_decision.py
+│   │       ├── human_in_loop.py       # REAL — interrupt() de LangGraph, ya no placeholder
+│   │       └── finalize.py
 │   ├── api/
-│   │   ├── schemas.py                 # Pydantic models
+│   │   ├── schemas.py                 # + CaseResolutionRequest (Semana 2)
 │   │   └── routes/
-│   │       ├── decision.py            # POST /decision
-│   │       ├── trace.py               # GET /trace/{id}
-│   │       ├── metrics.py             # GET /metrics
-│   │       └── cases.py               # GET /cases (Semana 2)
+│   │       ├── decision.py            # POST /decision + GET /decision/{id} (polling)
+│   │       ├── trace.py
+│   │       ├── metrics.py
+│   │       └── cases.py               # GET /cases + GET /cases/{id} + POST /cases/{id}/resolve
 │   └── db/
-│       ├── connection.py              # Pool psycopg v3 async
-│       └── init.sql                   # Schema: decisions, traces, cases, metrics
-├── data/
-│   └── profiles.py                    # 7 perfiles sintéticos curados
-├── tests/
-│   └── test_paths.py                  # Verificación de los 4 caminos
+│       ├── connection.py              # autocommit=True + get_pool()
+│       └── init.sql                   # + explanation, context (Semana 2)
+├── frontend/                          # NUEVO — Vite + React
+│   ├── vite.config.js
+│   └── src/
+│       ├── App.jsx / App.css
+│       ├── api.js
+│       ├── demoProfiles.js            # espejo de data/profiles.py
+│       └── components/
+│           ├── ClienteView.jsx
+│           └── AgenteView.jsx
+├── data/profiles.py
+├── tests/test_paths.py
 ├── docker-compose.yml
 ├── requirements.txt
 └── .env.example
@@ -296,163 +156,44 @@ decisio-io/
 
 ---
 
-## Endpoints disponibles (Semana 1)
+## Endpoints
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | GET | `/health` | Estado del servidor y DB |
-| POST | `/decision` | Motor principal de decisión |
+| POST | `/decision` | Motor principal — puede volver `pending_human` (grafo pausado) |
+| GET | `/decision/{id}` | Polling de estado — para la vista cliente mientras espera agente |
 | GET | `/trace/{id}` | Trace completo de una decisión |
 | GET | `/metrics` | Métricas agregadas |
-| GET | `/cases` | Bandeja de casos escalados (Semana 2) |
+| GET | `/cases` | Bandeja de casos pendientes, con contexto completo |
+| GET | `/cases/{id}` | Detalle de un caso |
+| POST | `/cases/{id}/resolve` | Reanuda el grafo — honor / adjust / revoke |
 
 ---
 
-## Flujo hacia el VPS (cuando esté listo)
+## Flujo hacia el VPS
 
 ```bash
-# Local
-git init && git add . && git commit -m "feat: semana 1 — backend completo"
-git remote add origin git@github.com:tu-usuario/decisio.git
-git push -u origin master
+git add . && git commit -m "feat: semana 2 — HITL real + frontend"
+git push
 
-# VPS (una sola vez)
-git clone git@github.com:tu-usuario/decisio-io.git
-cd decisio-io && cp .env.example .env  # poner API key
-docker compose up -d
-
-# Cada deploy siguiente
-git pull && docker compose restart
+# VPS
+git pull
+docker compose exec -T postgres psql -U decisio -d decisio < app/db/init.sql   # migración a mano
+docker compose up -d --build
 ```
 
-El `.env` nunca entra al repo.
+El `.env` nunca entra al repo. Si algo no toma los cambios, `docker compose up -d
+--build --force-recreate` (aprendizaje de la ronda anterior: el deploy silencioso
+es el enemigo real).
 
 ---
 
-## Semana 2 — Lo que viene
+## Semana 3 — lo que sigue
 
-- `interrupt()` de LangGraph reemplaza el placeholder en `human_in_loop.py`
-- `AsyncPostgresSaver` para persistir el estado pausado del grafo
-- `POST /cases/{id}/resolve` para que el agente reanude el grafo
-- Frontend React: vista cliente + vista agente + dashboard
-0ms
-  ✓ PASS
-
-  hard_rejection
-  Esperado: rejected
-  Resultado : rejected
-  Route     : auto | Latencia: ~2000ms
-  ✓ PASS
-
-  RESULTADO: 4/4 tests pasaron
-```
-
----
-
-### Paso 6 — Verificar trazabilidad (opcional pero recomendado)
-
-Tomar un `decision_id` del output del test anterior y consultar el trace completo:
-
-```bash
-curl http://localhost:8000/trace/{decision_id} | python -m json.tool
-```
-
-Debe retornar el timeline completo: ingest → rules_engine → ai_explainer → pre_guardrails → guardrails → auto_decision/human_in_loop → finalize.
-
----
-
-### Paso 7 — Verificar métricas
-
-```bash
-curl http://localhost:8000/metrics | python -m json.tool
-```
-
-Respuesta esperada (después de correr los 4 tests):
-```json
-{
-  "totals": {"total": 4, "approved": 1, "rejected": 1, "pending_human": 2},
-  "latency_ms": {"avg": 2300.0, ...},
-  "path_distribution": {"auto_approved": 1, "auto_rejected": 1, "human_escalated": 2}
-}
-```
-
----
-
-## Estructura del proyecto
-
-```
-decisio-io/
-├── app/
-│   ├── main.py                        # FastAPI entry point
-│   ├── graph/
-│   │   ├── state.py                   # CreditState TypedDict
-│   │   ├── graph.py                   # Grafo LangGraph compilado
-│   │   └── nodes/
-│   │       ├── ingest.py              # Normaliza y valida el perfil
-│   │       ├── rules_engine.py        # Reglas determinísticas (sin AI)
-│   │       ├── ai_assessor.py         # LLM evalúa zona gris
-│   │       ├── ai_explainer.py        # LLM genera justificación auditable
-│   │       ├── guardrails.py          # Límites duros post-decisión
-│   │       ├── auto_decision.py       # Aplica decisión automática
-│   │       ├── human_in_loop.py       # Placeholder → interrupt() en Semana 2
-│   │       └── finalize.py            # Consolida y persiste en Postgres
-│   ├── api/
-│   │   ├── schemas.py                 # Pydantic models
-│   │   └── routes/
-│   │       ├── decision.py            # POST /decision
-│   │       ├── trace.py               # GET /trace/{id}
-│   │       ├── metrics.py             # GET /metrics
-│   │       └── cases.py               # GET /cases (Semana 2)
-│   └── db/
-│       ├── connection.py              # Pool psycopg v3 async
-│       └── init.sql                   # Schema: decisions, traces, cases, metrics
-├── data/
-│   └── profiles.py                    # 7 perfiles sintéticos curados
-├── tests/
-│   └── test_paths.py                  # Verificación de los 4 caminos
-├── docker-compose.yml
-├── requirements.txt
-└── .env.example
-```
-
----
-
-## Endpoints disponibles (Semana 1)
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/health` | Estado del servidor y DB |
-| POST | `/decision` | Motor principal de decisión |
-| GET | `/trace/{id}` | Trace completo de una decisión |
-| GET | `/metrics` | Métricas agregadas |
-| GET | `/cases` | Bandeja de casos escalados (Semana 2) |
-
----
-
-## Flujo hacia el VPS (cuando esté listo)
-
-```bash
-# Local
-git init && git add . && git commit -m "feat: semana 1 — backend completo"
-git remote add origin git@github.com:tu-usuario/decisio.git
-git push -u origin master
-
-# VPS (una sola vez)
-git clone git@github.com:tu-usuario/decisio-io.git
-cd decisio-io && cp .env.example .env  # poner API key
-docker compose up -d
-
-# Cada deploy siguiente
-git pull && docker compose restart
-```
-
-El `.env` nunca entra al repo.
-
----
-
-## Semana 2 — Lo que viene
-
-- `interrupt()` de LangGraph reemplaza el placeholder en `human_in_loop.py`
-- `AsyncPostgresSaver` para persistir el estado pausado del grafo
-- `POST /cases/{id}/resolve` para que el agente reanude el grafo
-- Frontend React: vista cliente + vista agente + dashboard
+- Dashboard de observabilidad (React) sobre `GET /metrics`
+- Trazabilidad completa por caso (timeline click-through) — hoy el trace de un
+  caso pendiente solo muestra la fila placeholder, el timeline detallado llega
+  con `finalize`, después de resolver
+- Despliegue al VPS: Nginx + HTTPS + dominio propio
+- Curación final de los perfiles de demo + guion de 15 min ensayado

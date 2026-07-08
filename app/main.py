@@ -9,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.db import connection as db
 from app.api.routes import decision, trace, metrics, cases
+from app.graph.checkpointer import init_checkpointer
+from app.graph.graph import init_graph
 from app.logging_config import configure_json_logging
 
 configure_json_logging(level=logging.INFO)
@@ -18,7 +20,9 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await db.init_pool()
-    logger.info("DECISIO — online")
+    await init_checkpointer()  # AsyncPostgresSaver.setup() — idempotente
+    await init_graph()         # compila el grafo CON checkpointer (interrupt() real)
+    logger.info("DECISIO — online (HITL real con interrupt()/AsyncPostgresSaver)")
     yield
     await db.close_pool()
     logger.info("DECISIO — offline")
@@ -26,7 +30,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="DECISIO — Motor de Crédito iO",
-    version="1.0.0-semana1",
+    version="2.0.0-semana2",
     lifespan=lifespan,
 )
 

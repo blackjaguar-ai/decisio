@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS decisions (
     selected_amount NUMERIC(12, 2),
     notice_type     TEXT,
     idempotency_key TEXT,
-    response_json   JSONB
+    response_json   JSONB,
+    explanation     JSONB
 );
 
 -- Migración idempotente para instalaciones existentes (el VPS ya tenía esta tabla
@@ -26,6 +27,14 @@ ALTER TABLE decisions ADD COLUMN IF NOT EXISTS selected_amount NUMERIC(12, 2);
 ALTER TABLE decisions ADD COLUMN IF NOT EXISTS notice_type     TEXT;
 ALTER TABLE decisions ADD COLUMN IF NOT EXISTS idempotency_key TEXT;
 ALTER TABLE decisions ADD COLUMN IF NOT EXISTS response_json   JSONB;
+-- Semana 2: la explicación completa (ai_explanation) se guarda en su propia
+-- columna. Antes, GET /decision/{id} (polling de la vista cliente mientras
+-- espera resolución humana) solo podía leer el resumen condensado que quedó
+-- en `traces.payload` para el paso `ai_explainer` (step/outcome/summary/mode)
+-- -- perdía explanation_for_customer, factors_considered, next_steps y
+-- compliance_note. Se detectó probando el ciclo completo en sandbox contra
+-- Postgres real, no en el papel.
+ALTER TABLE decisions ADD COLUMN IF NOT EXISTS explanation     JSONB;
 
 -- Fix #8: una idempotency_key no puede mapear a dos decisiones distintas.
 -- Índice parcial (solo sobre valores no nulos) porque la mayoría de requests
@@ -53,8 +62,16 @@ CREATE TABLE IF NOT EXISTS cases (
     resolved_at       TIMESTAMPTZ,
     resolution        TEXT,
     resolution_amount NUMERIC(12, 2),
-    resolved_by       TEXT
+    resolved_by       TEXT,
+    context           JSONB
 );
+
+-- Semana 2: `context` guarda {customer, offer, selected_amount} -- el mismo
+-- payload que se le pasa a interrupt() en human_in_loop.py. Sin esto, la
+-- bandeja del agente solo tenía motivo de escalamiento + recomendación AI,
+-- pero no el perfil del cliente ni el rango de la oferta -- exactamente lo
+-- que el Spec (§7) exige que el agente vea antes de resolver.
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS context JSONB;
 
 CREATE TABLE IF NOT EXISTS metrics (
     id          BIGSERIAL PRIMARY KEY,

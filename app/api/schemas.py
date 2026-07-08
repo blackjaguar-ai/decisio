@@ -1,3 +1,4 @@
+from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -96,3 +97,20 @@ class DecisionResponse(BaseModel):
     guardrail_flags: list
     trace:           list
     persisted:       bool = True   # fix #4 — false si falló la escritura a Postgres
+
+
+class CaseResolutionRequest(BaseModel):
+    """
+    Body de POST /cases/{id}/resolve (Semana 2). Reanuda el grafo pausado en
+    `human_in_loop` — este objeto (vía .model_dump()) es exactamente el valor
+    que `interrupt()` devuelve dentro del nodo.
+    """
+    action:           Literal["honor", "adjust", "revoke"]
+    resolved_by:      str   = Field(min_length=1, description="Identificador del agente que resuelve")
+    adjusted_amount:  float | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def _adjust_requires_amount(self):
+        if self.action == "adjust" and self.adjusted_amount is None:
+            raise ValueError("action='adjust' requiere adjusted_amount.")
+        return self

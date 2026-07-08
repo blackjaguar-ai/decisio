@@ -10,6 +10,30 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+@router.get("/decision/{decision_id}")
+async def get_decision_status(decision_id: str):
+    """
+    Semana 2 — polling para la vista cliente mientras espera resolución
+    humana. La vista agente resuelve con POST /cases/{id}/resolve; este
+    endpoint es cómo el cliente se entera de que ya se resolvió, sin acoplar
+    la app a un websocket (fuera de alcance de la demo — ver Roadmap §0).
+    """
+    row = await db.fetch_one("SELECT * FROM decisions WHERE id = %s", (decision_id,))
+    if not row:
+        raise HTTPException(status_code=404, detail="Decisión no encontrada")
+
+    return {
+        "decision_id":     decision_id,
+        "outcome":         row["final_outcome"],
+        "approved_amount": float(row["approved_amount"]) if row["approved_amount"] is not None else None,
+        "notice_type":     row["notice_type"],
+        "decided_by":      row["decided_by"],
+        "route":           row["route"],
+        "explanation":     row["explanation"] or {},
+        "resolved_at":     row["resolved_at"].isoformat() if row["resolved_at"] else None,
+    }
+
+
 @router.post("/decision", response_model=DecisionResponse)
 async def create_decision(request: DecisionRequest):
     # Gate de identidad transaccional (§6.bis). Vive antes del grafo, no es un

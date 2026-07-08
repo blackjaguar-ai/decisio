@@ -9,8 +9,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./app/db/init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
@@ -22,12 +20,24 @@ services:
     build: .
     container_name: decisio_app
     env_file: .env
-    ports:
-      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
 
+  frontend:
+    build: ./frontend
+    container_name: decisio_frontend
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - default
+      - escai-network
+
 volumes:
   postgres_data:
+
+networks:
+  escai-network:
+    external: true
