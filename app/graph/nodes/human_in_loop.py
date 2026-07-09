@@ -64,7 +64,20 @@ async def human_in_loop_node(state: CreditState) -> dict:
         ingest_step = next((s for s in state.get("trace", []) if s.get("step") == "ingest"), None)
         if ingest_step and ingest_step.get("missing_fields"):
             triggered_reasons = [f"Payload incompleto: {', '.join(ingest_step['missing_fields'])}"]
-    escalation_reason = "; ".join(triggered_reasons) or "Escalamiento por hallazgo en revalidación"
+
+    # Semana 3 — FIX: un caso puede escalar SIN pasar nunca por
+    # rules_engine.hallazgo_menor — cuando bounds_check (G1/G4) marca un
+    # guardrail "hard" (staleness, tampering, anomalous_inputs) con
+    # rules_engine en 'sin_cambios', el grafo salta directo a `guardrails`
+    # sin invocar `ai_assessor` (ver route_after_rules en graph.py). Antes,
+    # `escalation_reason` no incluía esos flags — el agente veía el genérico
+    # "Escalamiento por hallazgo en revalidación" sin saber que en realidad
+    # fue un guardrail de monto/inputs, no un hallazgo de riesgo. Ahora se
+    # incluyen siempre que existan (pueden coexistir con triggered_reasons).
+    guardrail_flags = state.get("guardrail_flags", [])
+    guardrail_reasons = [f.get("message", f.get("guardrail", "")) for f in guardrail_flags]
+    all_reasons = triggered_reasons + guardrail_reasons
+    escalation_reason = "; ".join(all_reasons) or "Escalamiento por hallazgo en revalidación"
 
     # ── Placeholder en `decisions` — visible en /trace mientras está pendiente.
     try:
@@ -101,6 +114,13 @@ async def human_in_loop_node(state: CreditState) -> dict:
                     "customer": customer,
                     "offer": offer,
                     "selected_amount": selected_amount,
+                    # Semana 3: para que la vista agente pueda distinguir
+                    # "la AI evaluó y no tuvo mucha confianza" de "la AI
+                    # nunca fue consultada, esto escaló por un guardrail" —
+                    # antes eran visualmente indistinguibles (ambos casos
+                    # mostraban "sin confianza / sin razonamiento").
+                    "guardrail_flags": guardrail_flags,
+                    "ai_was_consulted": bool(ai_assessment),
                 }, default=str),
             ),
         )

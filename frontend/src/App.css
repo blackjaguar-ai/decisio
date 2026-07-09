@@ -1,36 +1,58 @@
 /* ────────────────────────────────────────────────────────────────────────
-   DECISIO — sistema de diseño
-   Paleta de marca (memoria del proyecto): copper #B55218 (identidad/CTA),
-   cyan #35B3A0 (activo/instantáneo), charcoal #252626 (base), petróleo
-   #0E1E1A (secciones oscuras). Tipografía: system-ui para texto de interfaz,
-   monospace para todo lo numérico (montos, cronómetro, scores) — el gesto
-   deliberado de esta build es que los números se lean como un instrumento,
-   no como texto decorativo. Sin fuentes externas: esto corre eventualmente
-   detrás del firewall corporativo de un banco, cero dependencia de un CDN
-   de fuentes que alguien de Riesgo pueda bloquear.
+   DECISIO — sistema de diseño (Semana 3 — rebrand a iO real)
+
+   CORRECCIÓN: la paleta de Semana 1/2 (copper/petróleo/charcoal) era la
+   marca de ESCAI TECH, nunca la de iO — un error de origen que solo se hizo
+   visible al cotejar contra screenshots reales de la app y el landing de
+   iO. Paleta real observada: fondo claro, tarjetas pastel cian/lavanda,
+   titulares en serif (ver "Bienvenido a iO", "Hola, ¿en qué puedo
+   ayudarte?"), CTAs en píldora negra, y el gradiente de marca real es
+   índigo → cian (visible en el isotipo de la "o" y en los rings del
+   landing, ej. el donut de "Cashback Obtenido"), nunca copper.
+
+   Tipografía: Inter — la familia oficial real de iO (Semana 3, dato
+   confirmado directamente por Cristian, extraído del sitio real de iO;
+   corrige la suposición de Semana 3 anterior, que usaba un stack serif de
+   sistema como aproximación sin acceso al dato real). Se carga vía
+   fonts.css (Google Fonts CDN — ver nota de infraestructura ahí). Un solo
+   stack tipográfico para todo: titulares y UI, sin la distinción
+   serif/sans anterior. El monospace se conserva EXCLUSIVAMENTE para las
+   cifras del dashboard de observabilidad — ahí el número se lee como
+   instrumento técnico para Riesgo/CTO.
    ──────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --petroleum: #0e1e1a;
-  --charcoal: #252626;
-  --copper: #b55218;
-  --copper-light: #d97a3f;
-  --cyan: #35b3a0;
-  --cyan-dark: #268a7b;
-  --cream: #f5f3ee;
-  --ink: #1a1a1a;
-  --slate: #6b7280;
-  --slate-light: #9aa1a8;
-  --danger: #b5453a;
-  --border-light: rgba(14, 30, 26, 0.1);
-  --border-dark: rgba(245, 243, 238, 0.1);
+  /* Paleta real iO */
+  --bg:              #f5f7fb;
+  --surface:          #ffffff;
+  --surface-cyan:     #e9f7f8;
+  --surface-indigo:   #eef0fc;
+  --surface-lilac:    #f2edfb;
+  --ink:              #14171f;
+  --ink-black:        #0a0c12;
+  --headline:         #1c2a4d;
+  --indigo:           #5b62f4;
+  --indigo-dark:      #3f46d1;
+  --cyan:             #2fd1d9;
+  --cyan-dark:        #159aa3;
+  --slate:            #6b7280;
+  --slate-light:      #9aa1a8;
+  --danger:           #e5484d;
+  --border-light:     rgba(20, 23, 31, 0.08);
+  --border-dark:      rgba(255, 255, 255, 0.09);
 
-  --font-ui: -apple-system, "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
+  --gradient-brand:   linear-gradient(135deg, var(--indigo) 0%, var(--cyan) 100%);
+  --gradient-hero:    radial-gradient(circle at 30% 20%, rgba(91, 98, 244, 0.55), transparent 55%),
+                      radial-gradient(circle at 75% 80%, rgba(47, 209, 217, 0.45), transparent 55%),
+                      var(--ink-black);
+
+  --font-headline: "Inter", -apple-system, "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
+  --font-ui: "Inter", -apple-system, "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace;
 
-  --radius-s: 8px;
-  --radius-m: 14px;
-  --radius-l: 28px;
+  --radius-s: 10px;
+  --radius-m: 16px;
+  --radius-l: 30px;
 }
 
 * { box-sizing: border-box; }
@@ -40,7 +62,7 @@ html, body, #root { height: 100%; }
 body {
   margin: 0;
   font-family: var(--font-ui);
-  background: var(--cream);
+  background: var(--bg);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }
@@ -57,8 +79,8 @@ input { font-family: inherit; }
 /* ── Header ─────────────────────────────────────────────────────────── */
 
 .app-header {
-  background: var(--petroleum);
-  color: var(--cream);
+  background: var(--ink-black);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -72,27 +94,34 @@ input { font-family: inherit; }
 }
 
 .app-header__mark {
-  background: var(--copper);
-  color: var(--cream);
-  font-family: var(--font-mono);
+  background: var(--gradient-brand);
+  color: #fff;
+  font-family: var(--font-ui);
   font-weight: 700;
   font-size: 13px;
-  letter-spacing: 0.04em;
-  padding: 5px 9px;
+  letter-spacing: 0.01em;
+  padding: 5px 10px;
   border-radius: var(--radius-s);
 }
 
+.app-header__logo {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
 .app-header__product {
+  font-family: var(--font-headline);
   font-weight: 600;
-  letter-spacing: 0.02em;
-  font-size: 15px;
-  color: rgba(245, 243, 238, 0.85);
+  letter-spacing: 0.01em;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .app-header__nav {
   display: flex;
   gap: 4px;
-  background: rgba(245, 243, 238, 0.06);
+  background: rgba(255, 255, 255, 0.07);
   padding: 4px;
   border-radius: 999px;
 }
@@ -100,7 +129,7 @@ input { font-family: inherit; }
 .nav-tab {
   border: none;
   background: transparent;
-  color: rgba(245, 243, 238, 0.65);
+  color: rgba(255, 255, 255, 0.6);
   padding: 8px 18px;
   border-radius: 999px;
   font-size: 13.5px;
@@ -109,8 +138,87 @@ input { font-family: inherit; }
 }
 
 .nav-tab--active {
+  background: #fff;
+  color: var(--ink-black);
+  font-weight: 700;
+}
+
+/* ── Nav mobile: hamburguesa + desplegable ────────────────────────────
+   Patrón calcado del menú real de iO (dark, semitransparente, se abre
+   desde la esquina superior derecha). Oculto en desktop por default —
+   el breakpoint mobile invierte cuál de los dos navs se muestra. */
+
+.app-header__mobile-nav {
+  display: none;
+  position: relative;
+}
+
+.hamburger-btn {
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hamburger-icon {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hamburger-icon span {
+  display: block;
+  width: 17px;
+  height: 2px;
   background: var(--cyan);
-  color: var(--petroleum);
+  border-radius: 2px;
+}
+
+.nav-dropdown__backdrop {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  border: none;
+  z-index: 40;
+}
+
+.nav-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 190px;
+  /* "Transparencia" pedida: panel oscuro mayormente opaco (90%) con blur
+     de fondo — mismo lenguaje visual que el desplegable real de iO, donde
+     se alcanza a intuir el contenido detrás sin comprometer legibilidad. */
+  background: rgba(10, 12, 18, 0.9);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 8px;
+  z-index: 50;
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-dropdown__item {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.nav-dropdown__item--active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
   font-weight: 700;
 }
 
@@ -130,11 +238,19 @@ input { font-family: inherit; }
 .phone-frame {
   width: 390px;
   max-width: 100%;
-  background: var(--ink);
+  /* FIX: proporción real de teléfono (19.5:9, el estándar moderno tipo
+     iPhone/gama alta Android) en vez de un ancho fijo + un alto en px
+     desconectado de ese ancho — eso es lo que se veía "desproporcionado".
+     Con aspect-ratio, el alto SIEMPRE se deriva del ancho real, en
+     cualquier viewport, sin cálculos de vh frágiles. */
+  aspect-ratio: 9 / 19.5;
+  background: var(--ink-black);
   border-radius: 44px;
   padding: 14px;
-  box-shadow: 0 30px 60px -20px rgba(14, 30, 26, 0.35);
+  box-shadow: 0 30px 60px -20px rgba(20, 23, 31, 0.35);
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .phone-notch {
@@ -144,21 +260,97 @@ input { font-family: inherit; }
   transform: translateX(-50%);
   width: 120px;
   height: 22px;
-  background: var(--ink);
+  background: var(--ink-black);
   border-radius: 0 0 16px 16px;
   z-index: 2;
 }
 
 .phone-screen {
-  background: var(--cream);
+  background: var(--surface);
   border-radius: 32px;
-  min-height: 640px;
-  overflow: hidden;
+  /* La región de scroll ya no necesita una altura calculada a mano — flex:1
+     le hace ocupar exactamente lo que el aspect-ratio del frame le deja,
+     y sigue siendo la única región de scroll (ver nota histórica abajo). */
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 44px 22px 28px;
   position: relative;
 }
 
 .step { display: flex; flex-direction: column; gap: 14px; }
+
+/* ── Paso: intro / popup de redirección ───────────────────────────────
+   Tono oscuro deliberado — reutiliza --gradient-hero (el mismo fondo del
+   ring "Cashback Obtenido" del dashboard, calcado del landing real de iO).
+   El resto del flujo cliente es claro/pastel; este primer instante se
+   siente como una notificación real llegando, no como pantalla de app. */
+
+.step--intro {
+  flex: 1;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.redirect-card {
+  width: 100%;
+  background: var(--gradient-hero);
+  border-radius: var(--radius-l);
+  padding: 32px 26px;
+  text-align: center;
+  color: #fff;
+  box-shadow: 0 20px 50px -20px rgba(10, 12, 18, 0.5);
+}
+
+.redirect-card__badge {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.redirect-card__eyebrow {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.redirect-card__title {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  font-size: 20px;
+  margin: 0 0 10px;
+  line-height: 1.35;
+}
+
+.redirect-card__copy {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.6;
+  margin: 0 0 22px;
+}
+
+.redirect-card__cta {
+  background: #fff;
+  color: var(--ink-black);
+  border: none;
+  border-radius: 999px;
+  padding: 13px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  width: 100%;
+}
+.redirect-card__cta:hover { background: rgba(255, 255, 255, 0.9); }
 
 .link-back {
   align-self: flex-start;
@@ -174,17 +366,17 @@ input { font-family: inherit; }
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--copper);
+  color: var(--indigo-dark);
   font-weight: 700;
 }
 
 /* ── Paso: notificación ─────────────────────────────────────────────── */
 
 .lockscreen-time {
-  font-family: var(--font-mono);
+  font-family: var(--font-headline);
   font-size: 44px;
-  font-weight: 300;
-  color: var(--ink);
+  font-weight: 400;
+  color: var(--headline);
   text-align: center;
   margin-bottom: 4px;
 }
@@ -201,8 +393,8 @@ input { font-family: inherit; }
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-height: 460px;
-  overflow-y: auto;
+  /* Sin max-height/overflow propio — .phone-screen (el padre) es ahora la
+     única región de scroll. Ver nota en .phone-screen. */
 }
 
 .push-card {
@@ -210,20 +402,20 @@ input { font-family: inherit; }
   gap: 12px;
   align-items: flex-start;
   text-align: left;
-  background: #ffffff;
+  background: var(--surface-indigo);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-m);
   padding: 12px 14px;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.push-card:hover { box-shadow: 0 6px 18px -10px rgba(14, 30, 26, 0.3); }
-.push-card--tapped { transform: scale(0.97); background: #efece4; }
+.push-card:hover { box-shadow: 0 6px 18px -10px rgba(20, 23, 31, 0.25); }
+.push-card--tapped { transform: scale(0.97); background: var(--surface-lilac); }
 
 .push-card__icon {
-  background: var(--copper);
-  color: var(--cream);
-  font-family: var(--font-mono);
+  background: var(--gradient-brand);
+  color: #fff;
+  font-family: var(--font-ui);
   font-weight: 700;
   font-size: 11px;
   width: 30px;
@@ -235,7 +427,7 @@ input { font-family: inherit; }
   flex-shrink: 0;
 }
 
-.push-card__title { font-weight: 600; font-size: 13.5px; }
+.push-card__title { font-weight: 600; font-size: 13.5px; color: var(--headline); }
 .push-card__subtitle { font-size: 12.5px; color: var(--slate); margin-top: 2px; }
 .push-card__tag {
   display: inline-block;
@@ -244,7 +436,7 @@ input { font-family: inherit; }
   font-weight: 600;
   letter-spacing: 0.02em;
   color: var(--cyan-dark);
-  background: rgba(53, 179, 160, 0.12);
+  background: rgba(47, 209, 217, 0.14);
   padding: 2px 7px;
   border-radius: 6px;
 }
@@ -252,24 +444,25 @@ input { font-family: inherit; }
 /* ── Paso: oferta / slider ──────────────────────────────────────────── */
 
 .offer-amount {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 42px;
-  font-weight: 600;
-  color: var(--ink);
+  font-weight: 700;
+  color: var(--headline);
   letter-spacing: -0.01em;
 }
 
 .slider {
   width: 100%;
-  accent-color: var(--copper);
+  accent-color: var(--indigo);
   height: 4px;
 }
 
 .slider-bounds {
   display: flex;
   justify-content: space-between;
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 11.5px;
+  font-weight: 600;
   color: var(--slate-light);
   margin-top: -8px;
 }
@@ -278,8 +471,8 @@ input { font-family: inherit; }
   font-size: 12.5px;
   color: var(--slate);
   line-height: 1.5;
-  background: rgba(181, 82, 24, 0.06);
-  border-left: 3px solid var(--copper);
+  background: var(--surface-indigo);
+  border-left: 3px solid var(--indigo);
   padding: 8px 10px;
   border-radius: 4px;
 }
@@ -289,12 +482,20 @@ input { font-family: inherit; }
 .identity-copy { font-size: 13.5px; color: var(--slate); line-height: 1.5; }
 .text-input {
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-s);
-  padding: 12px 14px;
+  border-radius: 999px;
+  padding: 12px 16px;
   font-size: 14px;
   background: #fff;
+  /* FIX Semana 3: sin esto, .text-input heredaba color:#fff de
+     .agent-console (su ancestro en la vista agente) — texto blanco sobre
+     fondo blanco, invisible. En desktop se veía roto; en mobile Chrome lo
+     disimulaba con su propio heurístico de contraste automático, por eso
+     no se notaba ahí. Ahora el color es explícito, no depende de dónde
+     viva el input. */
+  color: var(--ink);
   width: 100%;
 }
+.text-input::placeholder { color: var(--slate-light); }
 .text-input:focus { outline: 2px solid var(--cyan); outline-offset: 1px; }
 .text-input--inline { width: auto; flex: 1; }
 
@@ -311,7 +512,7 @@ input { font-family: inherit; }
 
 .spinner {
   width: 34px; height: 34px;
-  border: 3px solid rgba(53, 179, 160, 0.2);
+  border: 3px solid rgba(47, 209, 217, 0.2);
   border-top-color: var(--cyan);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -319,13 +520,13 @@ input { font-family: inherit; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .cronometro {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 48px;
-  font-weight: 700;
-  color: var(--cyan-dark);
+  font-weight: 800;
+  color: var(--indigo-dark);
   font-variant-numeric: tabular-nums;
 }
-.cronometro--pending { color: var(--copper); }
+.cronometro--pending { color: var(--cyan-dark); }
 
 .comparativo {
   font-size: 12px;
@@ -339,7 +540,7 @@ input { font-family: inherit; }
 .pending-pulse {
   width: 14px; height: 14px;
   border-radius: 50%;
-  background: var(--copper);
+  background: var(--indigo);
   animation: pulse 1.4s ease-in-out infinite;
 }
 @keyframes pulse {
@@ -348,12 +549,12 @@ input { font-family: inherit; }
 }
 
 .result-icon { font-size: 30px; }
-.result-title { font-size: 17px; font-weight: 700; }
+.result-title { font-family: var(--font-headline); font-size: 19px; font-weight: 700; color: var(--headline); }
 .result-copy { font-size: 13.5px; color: var(--slate); line-height: 1.6; max-width: 300px; }
 .pending-meta { font-size: 11px; color: var(--slate-light); }
 
 .result--honored .result-icon { color: var(--cyan-dark); }
-.result--revoked .result-icon { color: var(--copper); }
+.result--revoked .result-icon { color: var(--danger); }
 .result--error .result-icon { color: var(--danger); }
 
 .badge {
@@ -363,21 +564,21 @@ input { font-family: inherit; }
   padding: 4px 10px;
   border-radius: 999px;
 }
-.badge--adverse { background: rgba(181, 82, 24, 0.12); color: var(--copper); }
-.badge--human { background: rgba(53, 179, 160, 0.14); color: var(--cyan-dark); }
+.badge--adverse { background: rgba(229, 72, 77, 0.12); color: var(--danger); }
+.badge--human { background: rgba(47, 209, 217, 0.14); color: var(--cyan-dark); }
 
 .btn {
   border: none;
-  border-radius: var(--radius-s);
+  border-radius: 999px;
   padding: 13px 18px;
   font-size: 14px;
   font-weight: 600;
   width: 100%;
 }
-.btn--primary { background: var(--copper); color: var(--cream); }
-.btn--primary:hover { background: var(--copper-light); }
-.btn--primary:disabled { opacity: 0.4; cursor: not-allowed; }
-.btn--secondary { background: var(--charcoal); color: var(--cream); }
+.btn--primary { background: var(--ink-black); color: #fff; }
+.btn--primary:hover { background: #22262f; }
+.btn--primary:disabled { opacity: 0.35; cursor: not-allowed; }
+.btn--secondary { background: var(--gradient-brand); color: #fff; }
 .btn--danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
 .btn--ghost { background: transparent; color: var(--slate); border: 1px solid var(--border-light); width: auto; padding: 10px 16px; }
 
@@ -389,8 +590,8 @@ input { font-family: inherit; }
   display: flex;
   width: 100%;
   min-height: calc(100vh - 60px);
-  background: var(--charcoal);
-  color: var(--cream);
+  background: var(--ink-black);
+  color: #fff;
 }
 
 .agent-sidebar {
@@ -408,7 +609,7 @@ input { font-family: inherit; }
   padding: 20px 20px 12px;
 }
 
-.agent-sidebar__title { font-weight: 700; font-size: 15px; }
+.agent-sidebar__title { font-family: var(--font-headline); font-weight: 700; font-size: 16px; }
 .agent-sidebar__count {
   font-family: var(--font-mono);
   font-size: 12px;
@@ -425,10 +626,10 @@ input { font-family: inherit; }
   border: none;
   border-bottom: 1px solid var(--border-dark);
   padding: 14px 20px;
-  color: var(--cream);
+  color: #fff;
 }
-.agent-case-item:hover { background: rgba(245, 243, 238, 0.03); }
-.agent-case-item--active { background: rgba(53, 179, 160, 0.08); border-left: 3px solid var(--cyan); }
+.agent-case-item:hover { background: rgba(255, 255, 255, 0.03); }
+.agent-case-item--active { background: rgba(47, 209, 217, 0.08); border-left: 3px solid var(--cyan); }
 
 .agent-case-item__name { font-weight: 600; font-size: 13.5px; }
 .agent-case-item__reason { font-size: 12px; color: var(--slate-light); margin-top: 3px; line-height: 1.4; }
@@ -436,20 +637,20 @@ input { font-family: inherit; }
 
 .confidence-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
 .confidence-dot--high { background: var(--cyan); }
-.confidence-dot--mid { background: var(--copper-light); }
+.confidence-dot--mid { background: var(--indigo); }
 .confidence-dot--low { background: var(--danger); }
 .confidence-dot--unknown { background: var(--slate); }
 
 .agent-empty { padding: 30px 20px; color: var(--slate-light); font-size: 13px; line-height: 1.5; }
 .agent-empty--detail { margin: auto; }
-.agent-error { padding: 8px 20px; color: var(--copper-light); font-size: 12px; }
+.agent-error { padding: 8px 20px; color: var(--danger); font-size: 12px; }
 
 .agent-detail { flex: 1; padding: 32px 40px; overflow-y: auto; }
 
 .agent-toast {
-  background: rgba(53, 179, 160, 0.12);
+  background: rgba(47, 209, 217, 0.12);
   border: 1px solid var(--cyan);
-  color: var(--cream);
+  color: #fff;
   padding: 12px 16px;
   border-radius: var(--radius-s);
   font-size: 13.5px;
@@ -458,14 +659,14 @@ input { font-family: inherit; }
 
 .case-detail { max-width: 640px; }
 .case-detail__header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px; }
-.case-detail__header h2 { margin: 0; font-size: 20px; }
+.case-detail__header h2 { font-family: var(--font-headline); margin: 0; font-size: 21px; }
 .case-detail__id { font-family: var(--font-mono); font-size: 11px; color: var(--slate-light); }
 
 .case-detail__grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  background: rgba(245, 243, 238, 0.03);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-dark);
   border-radius: var(--radius-m);
   padding: 18px;
@@ -488,15 +689,19 @@ input { font-family: inherit; }
 }
 
 .case-detail__escalation, .case-detail__ai {
-  background: rgba(245, 243, 238, 0.03);
+  background: rgba(255, 255, 255, 0.03);
   border-radius: var(--radius-m);
   padding: 16px 18px;
   margin-bottom: 16px;
 }
+.case-detail__ai--guardrail {
+  border-left: 3px solid var(--danger);
+  background: rgba(229, 72, 77, 0.06);
+}
 .case-detail__escalation p, .case-detail__ai-reasoning {
   font-size: 13.5px;
   line-height: 1.6;
-  color: rgba(245, 243, 238, 0.85);
+  color: rgba(255, 255, 255, 0.85);
   margin: 0;
 }
 
@@ -505,8 +710,8 @@ input { font-family: inherit; }
   margin-top: 10px;
   font-family: var(--font-mono);
   font-size: 11px;
-  background: rgba(181, 82, 24, 0.16);
-  color: var(--copper-light);
+  background: rgba(91, 98, 244, 0.2);
+  color: #b8bcfc;
   padding: 4px 9px;
   border-radius: 6px;
 }
@@ -522,4 +727,564 @@ input { font-family: inherit; }
   .agent-sidebar { width: 100%; max-height: 260px; }
   .case-detail__grid { grid-template-columns: repeat(2, 1fr); }
   .case-detail__buttons { flex-direction: column; }
+}
+
+/* Semana 3 (segunda corrección): el mockup se mantiene también en mobile
+   (más profesional), pero la fila completa de 3 tabs debajo del header le
+   quitaba demasiada altura útil — se veía "enano". Se reemplaza esa fila
+   por una hamburguesa + desplegable (igual que el patrón real de iO), lo
+   que libera esa altura completa para el phone-frame de abajo. */
+@media (max-width: 480px) {
+  .app-header { padding: 10px 14px; }
+  .app-header__nav--desktop { display: none; }
+  .app-header__mobile-nav { display: block; }
+  .app-header__product { font-size: 14px; }
+
+  .app--cliente .app-main { padding: 10px 10px; }
+  .phone-frame {
+    /* Con aspect-ratio ya no hace falta calcular una altura a mano — solo
+       se ajusta el ANCHO base para que, a 19.5:9, el alto resultante sea
+       cómodo en un celular real (a 390px de ancho daría ~845px de alto,
+       demasiado para la mayoría de viewports en portrait). */
+    width: min(340px, 82vw);
+    padding: 8px;
+  }
+}
+
+/* ── Vista "Cómo funciona": explicativa del proyecto (Semana 3) ────────
+   Paleta propia, deliberadamente distinta de la de iO — esta vista no
+   simula el banco, presenta el proyecto. Fondo oscuro degradado violeta,
+   acentos magenta/violeta, tarjetas escalonadas con reveal-on-scroll. */
+
+.app--about .app-main { padding: 0; background: #0b0714; }
+
+.about-view {
+  /* Paleta propia de Escai Tech (copper/cyan/petróleo) — la misma que ya
+     recuperó el dashboard. Antes esta vista tomaba violeta/magenta de la
+     referencia visual que mandaste (TAC), pero esta vista presenta el
+     proyecto DE ESCAI TECH, así que corresponde su propia identidad, no
+     una prestada. Semántica igual que en la documentación original:
+     copper = identidad/CTA, cyan = activo/instantáneo. */
+  --about-bg: #0e1e1a;
+  --about-accent: #d97a3f;
+  --about-accent-2: #35b3a0;
+  --about-text: #f5f3ee;
+  --about-text-dim: rgba(245, 243, 238, 0.65);
+  --about-card: rgba(245, 243, 238, 0.045);
+  --about-border: rgba(245, 243, 238, 0.09);
+
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: radial-gradient(circle at 15% 0%, rgba(181, 82, 24, 0.16) 0%, transparent 45%),
+              radial-gradient(circle at 90% 15%, rgba(53, 179, 160, 0.14) 0%, transparent 40%),
+              var(--about-bg);
+  color: var(--about-text);
+  font-family: var(--font-ui);
+  padding-bottom: 90px;
+}
+
+.about-glow {
+  position: absolute;
+  width: 460px;
+  height: 460px;
+  border-radius: 50%;
+  filter: blur(110px);
+  opacity: 0.35;
+  pointer-events: none;
+  animation: about-float 14s ease-in-out infinite;
+}
+.about-glow--1 { top: -120px; left: -100px; background: var(--about-accent); }
+.about-glow--2 { top: 420px; right: -140px; background: var(--about-accent-2); animation-delay: -6s; }
+
+@keyframes about-float {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(30px, -30px); }
+}
+
+/* ── Reveal on scroll ─────────────────────────────────────────────── */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+.reveal--visible { opacity: 1; transform: none; }
+
+/* ── Hero ─────────────────────────────────────────────────────────── */
+
+.about-hero {
+  position: relative;
+  z-index: 1;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 80px 24px 40px;
+  text-align: center;
+}
+
+.about-eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--about-accent-2);
+  background: rgba(53, 179, 160, 0.12);
+  border: 1px solid rgba(53, 179, 160, 0.35);
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin-bottom: 22px;
+}
+
+.about-title {
+  font-family: var(--font-headline);
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1.15;
+  margin: 0 0 18px;
+}
+
+/* Sin degradado: cada frase lleva UN color sólido, como en el sitio real
+   (copper en "problemas reales.", cyan en "EL MÉTODO") — nunca mezclados
+   dentro del mismo texto. */
+.about-title__accent--copper { color: var(--about-accent); }
+.about-title__accent--cyan { color: var(--about-accent-2); }
+
+.about-typewriter {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--about-accent-2);
+  min-height: 22px;
+  margin-bottom: 20px;
+}
+
+.about-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  background: var(--about-accent-2);
+  margin-left: 3px;
+  vertical-align: middle;
+  animation: about-blink 0.9s steps(1) infinite;
+}
+@keyframes about-blink { 50% { opacity: 0; } }
+
+.about-hero__copy {
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: var(--about-text-dim);
+  max-width: 560px;
+  margin: 0 auto 30px;
+}
+
+.about-hero__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.about-btn {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  border-radius: 999px;
+  padding: 13px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.about-btn--primary {
+  background: var(--about-accent);
+  color: #fff;
+  box-shadow: 0 12px 30px -10px rgba(217, 122, 63, 0.45);
+}
+.about-btn--primary:hover { background: #c96a2e; transform: translateY(-2px); }
+.about-btn--ghost {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--about-text);
+  border: 1px solid var(--about-border);
+}
+.about-btn--ghost:hover { background: rgba(255, 255, 255, 0.09); }
+
+/* ── Stats ────────────────────────────────────────────────────────── */
+
+.about-stats {
+  position: relative;
+  z-index: 1;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 20px 24px 60px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.about-stat {
+  background: var(--about-card);
+  border: 1px solid var(--about-border);
+  border-radius: 18px;
+  padding: 20px 18px;
+  text-align: center;
+}
+.about-stat__value {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--about-accent);
+  margin-bottom: 8px;
+}
+.about-stat__label {
+  font-size: 12px;
+  color: var(--about-text-dim);
+  line-height: 1.5;
+}
+
+/* ── Secciones genéricas ──────────────────────────────────────────── */
+
+.about-section {
+  position: relative;
+  z-index: 1;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 50px 24px;
+}
+
+.about-section__eyebrow {
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--about-accent-2);
+  margin-bottom: 10px;
+}
+.about-section__title {
+  font-family: var(--font-headline);
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 14px;
+}
+.about-section__copy {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--about-text-dim);
+  max-width: 640px;
+  margin: 0 0 36px;
+}
+
+/* ── Staircase de nodos del grafo ─────────────────────────────────── */
+
+.about-staircase {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.about-node-wrap { display: flex; }
+
+.about-node {
+  background: var(--about-card);
+  border: 1px solid var(--about-border);
+  border-radius: 18px;
+  padding: 20px 22px;
+  width: 100%;
+  max-width: 560px;
+  /* Escalonado tipo "staircase" — cada nodo se desplaza un poco más a la
+     derecha que el anterior, mismo lenguaje visual de referencia. Se
+     desactiva en mobile (ver media query) para no desperdiciar ancho. */
+  margin-left: calc(var(--step, 0) * 34px);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.about-node:hover {
+  border-color: rgba(217, 122, 63, 0.4);
+  transform: translateX(4px);
+}
+
+.about-node__index {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--about-accent-2);
+  margin-bottom: 6px;
+}
+.about-node__title {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 6px;
+}
+.about-node__desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--about-text-dim);
+}
+
+/* ── Compliance ───────────────────────────────────────────────────── */
+
+.about-compliance {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.about-compliance__card {
+  background: var(--about-card);
+  border: 1px solid var(--about-border);
+  border-left: 3px solid var(--about-accent-2);
+  border-radius: 14px;
+  padding: 20px 22px;
+}
+.about-compliance__title {
+  font-family: var(--font-headline);
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.about-compliance__desc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--about-text-dim);
+  margin: 0;
+}
+
+/* ── CTA final ────────────────────────────────────────────────────── */
+
+.about-cta {
+  position: relative;
+  z-index: 1;
+  max-width: 620px;
+  margin: 20px auto 0;
+  padding: 50px 24px;
+  text-align: center;
+}
+.about-cta__title {
+  font-family: var(--font-headline);
+  font-size: 24px;
+  margin: 0 0 10px;
+}
+.about-cta__copy {
+  font-size: 14px;
+  color: var(--about-text-dim);
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+@media (max-width: 720px) {
+  .about-title { font-size: 32px; }
+  .about-stats { grid-template-columns: repeat(2, 1fr); }
+  .about-compliance { grid-template-columns: 1fr; }
+  .about-node { margin-left: 0; max-width: 100%; }
+  .about-hero { padding: 56px 18px 30px; }
+  .about-section { padding: 36px 18px; }
+}
+
+/* ── Vista dashboard: observabilidad (Semana 3) ─────────────────────── */
+/* Dashboard usa la paleta de iO (igual que Vista cliente/Vista agente) —
+   es parte de la simulación de la app del banco. La identidad propia de
+   Escai Tech vive en "Cómo funciona" (about-view), que sí presenta el
+   proyecto de Escai en sí mismo, no la app de iO. */
+
+.app--dashboard .app-main { padding: 0; background: var(--bg); }
+
+.dashboard {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 32px 60px;
+}
+
+.dashboard__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+
+.dashboard__title { font-family: var(--font-headline); font-size: 26px; color: var(--headline); margin: 0 0 4px; }
+.dashboard__subtitle { font-size: 13px; color: var(--slate); }
+
+.dashboard__status {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--slate-light);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--cyan);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.dashboard__empty {
+  background: var(--surface);
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-m);
+  padding: 60px 30px;
+  text-align: center;
+  color: var(--slate);
+  font-size: 14px;
+}
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.dash-card {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-m);
+  padding: 18px 20px;
+}
+
+.dash-card--cyan   { background: var(--surface-cyan); }
+.dash-card--indigo { background: var(--surface-indigo); }
+.dash-card--lilac  { background: var(--surface-lilac); }
+
+.dash-card__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--slate);
+  font-weight: 600;
+}
+.dash-card__value {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--headline);
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.dash-card__meta { font-size: 11.5px; color: var(--slate-light); margin-top: 4px; }
+
+/* Hero: el ring de latencia, calcado del ring de "Cashback Obtenido" del
+   landing real de iO — fondo negro, glow índigo→cian, cifra grande al
+   centro. Es intencional: es el único gráfico de todo el dashboard que
+   reproduce 1:1 un patrón visual real de la marca, porque es también el
+   número que más le importa defender al CTO en la reunión. */
+.hero-latency {
+  grid-column: span 2;
+  background: var(--gradient-hero);
+  border-radius: var(--radius-l);
+  padding: 28px 32px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-latency__ring-wrap { flex-shrink: 0; }
+
+.hero-latency__body { position: relative; z-index: 1; }
+.hero-latency__eyebrow {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.hero-latency__title { font-family: var(--font-headline); font-size: 22px; margin: 0 0 10px; }
+.hero-latency__compare {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.6;
+}
+.hero-latency__compare strong { color: #fff; font-family: var(--font-mono); }
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-m);
+  padding: 22px 24px;
+  margin-bottom: 20px;
+}
+
+.panel__title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--slate);
+  margin: 0 0 16px;
+}
+
+.dash-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 20px;
+}
+
+.bar-list { display: flex; flex-direction: column; gap: 12px; }
+.bar-list__row { display: grid; grid-template-columns: 150px 1fr 40px; align-items: center; gap: 10px; }
+.bar-list__label { font-size: 12.5px; color: var(--ink); font-weight: 500; }
+.bar-list__track { height: 8px; background: var(--surface-indigo); border-radius: 999px; overflow: hidden; }
+.bar-list__fill { height: 100%; background: var(--gradient-brand); border-radius: 999px; }
+.bar-list__fill--danger { background: var(--danger); }
+.bar-list__value { font-family: var(--font-mono); font-size: 12px; color: var(--slate); text-align: right; }
+
+.feed-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.feed-table th {
+  text-align: left;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--slate-light);
+  font-weight: 600;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-light);
+}
+.feed-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--ink);
+  font-family: var(--font-mono);
+}
+.feed-table tr:last-child td { border-bottom: none; }
+
+.pill-outcome {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-family: var(--font-ui);
+}
+.pill-outcome--honored { background: rgba(47, 209, 217, 0.14); color: var(--cyan-dark); }
+.pill-outcome--revoked { background: rgba(229, 72, 77, 0.12); color: var(--danger); }
+.pill-outcome--pending_human { background: rgba(91, 98, 244, 0.14); color: var(--indigo-dark); }
+.pill-outcome--identity_verification_failed { background: rgba(20, 23, 31, 0.08); color: var(--slate); }
+
+.chart-wrap { width: 100%; height: 220px; }
+
+@media (max-width: 980px) {
+  .dash-grid { grid-template-columns: repeat(2, 1fr); }
+  .hero-latency { grid-column: span 2; flex-direction: column; align-items: flex-start; }
+  .dash-row { grid-template-columns: 1fr; }
+}
+
+/* Semana 3 — "en dashboard en móvil no está correctamente mostrado": el
+   breakpoint de 980px alcanza para tablet/laptop chico, pero a 360-400px
+   (celular real) las 3 tarjetas de stats siguen apretadas a 2 columnas, el
+   padding lateral de 32px come demasiado ancho útil, y la tabla del feed
+   (6 columnas) se aplasta ilegible en vez de scrollear horizontal. */
+@media (max-width: 640px) {
+  .dashboard { padding: 18px 14px 40px; }
+  .dashboard__header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .dash-grid { grid-template-columns: 1fr; }
+  .hero-latency { grid-column: span 1; padding: 22px 20px; }
+  .hero-latency__ring-wrap svg { width: 120px; height: 120px; }
+  .dash-card__value { font-size: 26px; }
+  .panel { padding: 16px 16px; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .feed-table { min-width: 560px; }
 }

@@ -30,7 +30,7 @@ function useElapsedSeconds(running) {
 }
 
 export default function ClienteView() {
-  const [step, setStep] = useState("notification"); // notification -> offer -> identity -> processing -> result
+  const [step, setStep] = useState("intro"); // intro -> notification -> offer -> identity -> processing -> result
   const [profile, setProfile] = useState(null);
   const [amount, setAmount] = useState(0);
   const [password, setPassword] = useState("");
@@ -119,6 +119,10 @@ export default function ClienteView() {
     <div className="phone-frame">
       <div className="phone-notch" />
       <div className="phone-screen">
+        {step === "intro" && (
+          <RedirectIntro onContinue={() => setStep("notification")} />
+        )}
+
         {step === "notification" && (
           <NotificationStep onPick={pickProfile} />
         )}
@@ -156,6 +160,31 @@ export default function ClienteView() {
             onReset={reset}
           />
         )}
+      </div>
+    </div>
+  );
+}
+
+function RedirectIntro({ onContinue }) {
+  // Popup de apertura — simula el deep-link real: tocar la notificación
+  // push lleva DIRECTO a la oferta, nunca a soporte (el hallazgo #1 de la
+  // Propuesta, §2.1). Tono oscuro deliberado (mismo --gradient-hero que el
+  // ring de "Cashback Obtenido" del landing real de iO) — reservamos el
+  // tono claro/pastel para el resto del flujo del cliente, así este primer
+  // instante se siente como una notificación real llegando, no como una
+  // pantalla más de la app.
+  return (
+    <div className="step step--intro">
+      <div className="redirect-card">
+        <div className="redirect-card__badge">🔔</div>
+        <div className="redirect-card__eyebrow">Notificación push</div>
+        <h3 className="redirect-card__title">Tienes una ampliación de línea preaprobada</h3>
+        <p className="redirect-card__copy">
+          Un toque te lleva directo a tu oferta — nunca a soporte, nunca a una cola de 72 horas.
+        </p>
+        <button className="redirect-card__cta" onClick={onContinue}>
+          Ver oferta →
+        </button>
       </div>
     </div>
   );

@@ -49,9 +49,25 @@ async def finalize_node(state: CreditState) -> dict:
                                 "latency_ms": latency_ms, "decided_by": decided_by,
                                 "notice_type": notice_type}]
 
-    path_map = {"honored": "auto_honored", "revoked": "auto_revoked",
-                "pending_human": "human_escalated"}
-    path = path_map.get(outcome, "unknown")
+    # Semana 3 — FIX: antes, `path` se decidía solo por `outcome` (honored/
+    # revoked/pending_human). Como `finalize` corre UNA sola vez, al final
+    # completo del grafo, "pending_human" nunca llega aquí como outcome (ese
+    # valor solo existe en el placeholder que human_in_loop escribe ANTES de
+    # interrupt() — ver §1.2 del Handoff Semana 2). El resultado: un caso que
+    # escaló a humano y se resolvió como "honor" quedaba clasificado como
+    # `auto_honored`, mezclando el tiempo real de espera del agente (minutos,
+    # no segundos) dentro del promedio del "camino limpio" — exactamente el
+    # bug que infló el ring de latencia del dashboard con 101.9s de un solo
+    # caso HITL. El path ahora se decide por `route` (que sí distingue si el
+    # grafo pasó por human_in_loop), nunca por el outcome final.
+    if route == "human":
+        path = "human_escalated"
+    elif outcome == "honored":
+        path = "auto_honored"
+    elif outcome == "revoked":
+        path = "auto_revoked"
+    else:
+        path = "unknown"
 
     persisted = True
 

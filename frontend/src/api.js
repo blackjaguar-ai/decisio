@@ -46,3 +46,7 @@ export function resolveCase(caseId, resolution) {
     body: JSON.stringify(resolution),
   });
 }
+
+export function getMetrics() {
+  return request("/metrics");
+}

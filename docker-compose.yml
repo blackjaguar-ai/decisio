@@ -31,6 +31,15 @@ services:
     depends_on:
       - app
     restart: unless-stopped
+    volumes:
+      # Semana 3: bind mount de solo lectura sobre frontend/public/brand/.
+      # Nginx sirve archivos estáticos directo de disco en cada request —
+      # reemplazar frontend/public/brand/logo-io.svg en el VPS se refleja
+      # de inmediato con un refresh del navegador, SIN docker compose
+      # up -d --build. El resto del sitio (JS/CSS bundleados, index.html)
+      # sigue viniendo de la imagen — solo esta carpeta específica queda
+      # editable en caliente. `:ro` porque nginx nunca necesita escribir ahí.
+      - ./frontend/public/brand:/usr/share/nginx/html/brand:ro
     networks:
       - default
       - escai-network

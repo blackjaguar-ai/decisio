@@ -116,7 +116,14 @@ function confidenceLevel(confidence) {
 }
 
 function CaseDetail({ caseItem, onResolve }) {
-  const [resolvedBy, setResolvedBy] = useState("agente_maria");
+  // Semana 3 — FIX: antes precargaba "agente_maria" como valor por default,
+  // invisible mientras el input tenía el bug de blanco-sobre-blanco. Con el
+  // input invisible, era posible resolver un caso sin saber que se estaba
+  // firmando como "agente_maria" — mal para un audit trail que la Res. SBS
+  // 053-2023 espera que identifique a quién decidió. Ahora arranca vacío;
+  // el fallback a "agente_demo" (en handleResolve, AgenteView) solo aplica
+  // si de verdad se deja en blanco a propósito.
+  const [resolvedBy, setResolvedBy] = useState("");
   const [adjustedAmount, setAdjustedAmount] = useState("");
   const [showAdjust, setShowAdjust] = useState(false);
 
@@ -147,15 +154,38 @@ function CaseDetail({ caseItem, onResolve }) {
         <p>{caseItem.escalation_reason}</p>
       </div>
 
-      <div className="case-detail__ai">
-        <div className="case-detail__section-title">
-          Recomendación AI
-          <span className={"confidence-dot confidence-dot--" + confidenceLevel(caseItem.ai_confidence)} />
-          {caseItem.ai_confidence !== null ? `${(caseItem.ai_confidence * 100).toFixed(0)}% confianza` : "sin confianza"}
+      {caseItem.context?.ai_was_consulted !== false ? (
+        <div className="case-detail__ai">
+          <div className="case-detail__section-title">
+            Recomendación AI
+            <span className={"confidence-dot confidence-dot--" + confidenceLevel(caseItem.ai_confidence)} />
+            {caseItem.ai_confidence !== null ? `${(caseItem.ai_confidence * 100).toFixed(0)}% confianza` : "sin confianza"}
+          </div>
+          <p className="case-detail__ai-reasoning">{caseItem.ai_summary || "Sin razonamiento disponible."}</p>
+          <div className="case-detail__ai-badge">{caseItem.ai_recommendation || "—"}</div>
         </div>
-        <p className="case-detail__ai-reasoning">{caseItem.ai_summary || "Sin razonamiento disponible."}</p>
-        <div className="case-detail__ai-badge">{caseItem.ai_recommendation || "—"}</div>
-      </div>
+      ) : (
+        // Semana 3 — FIX: antes, un caso que escaló por un guardrail (G1/G4
+        // en bounds_check.py — staleness, tampering, desproporción monto/
+        // ingreso) SIN pasar nunca por ai_assessor mostraba el mismo panel
+        // que un caso donde la AI sí opinó y tuvo baja confianza — ambos se
+        // veían idénticos ("sin confianza" / "Sin razonamiento disponible"),
+        // como si la AI hubiera fallado. No falló: nunca fue consultada,
+        // porque este tipo de escalamiento no lo requiere. Ahora se muestra
+        // explícitamente cuál guardrail disparó el caso.
+        <div className="case-detail__ai case-detail__ai--guardrail">
+          <div className="case-detail__section-title">Escalado por guardrail — sin consulta a la AI</div>
+          <p className="case-detail__ai-reasoning">
+            Este caso no pasó por evaluación de la AI: un guardrail automático (bounds_check)
+            lo escaló directo, antes de que hubiera oportunidad de invocar al modelo.
+          </p>
+          {(caseItem.context?.guardrail_flags || []).map((flag, i) => (
+            <div className="case-detail__ai-badge" key={i} style={{ display: "block", marginTop: i === 0 ? 10 : 6 }}>
+              {flag.guardrail}: {flag.message}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="case-detail__actions">
         <input

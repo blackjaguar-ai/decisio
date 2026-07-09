@@ -41,6 +41,20 @@ async def create_decision(request: DecisionRequest):
     if not request.identity_verified:
         blocked_id = f"blocked-{uuid.uuid4()}"
         logger.warning("POST /decision | %s | identity verification failed, graph not invoked", blocked_id)
+        # Semana 3: el gate de identidad (§6.bis) es un punto de venta explícito
+        # de la demo ("cerramos el mismo riesgo que Interbank cierra con
+        # biometría") pero antes de esto era invisible para /metrics — nunca
+        # tocaba `decisions` ni `metrics` porque el grafo nunca corre. Sin este
+        # insert, el dashboard no puede responder "¿cuántas veces se disparó
+        # el gate?" con un número real. Reutiliza la tabla `metrics` existente
+        # (path='identity_blocked', latency_ms=NULL — no hay grafo que medir).
+        try:
+            await db.execute(
+                "INSERT INTO metrics (decision_id, path, latency_ms) VALUES (%s, %s, %s)",
+                (blocked_id, "identity_blocked", None),
+            )
+        except Exception as e:
+            logger.error("POST /decision | %s | error logueando identity_blocked: %s", blocked_id, e)
         return DecisionResponse(
             decision_id=blocked_id,
             outcome="identity_verification_failed",
