@@ -3,9 +3,13 @@
 Motor de decisión crediticia. LangGraph + FastAPI + PostgreSQL + Claude Sonnet 4.6 + React.
 Demo para primera reunión con Banco iO.
 
-**Estado: Semana 2 completa.** Backend con human-in-the-loop real (`interrupt()` +
-`AsyncPostgresSaver`) y frontend funcional (vista cliente + vista agente). Ver
-`Handoff_Semana2_HITL_Frontend.md` para el detalle técnico de esta ronda.
+**Estado: Semana 3 en curso.** Backend con human-in-the-loop real (`interrupt()` +
+`AsyncPostgresSaver`), frontend con 4 vistas (Cómo funciona / Vista cliente / Vista
+agente / Dashboard), rebrand real de iO (Inter auto-hospedado, paleta real, logo con
+bind mount) y dashboard de observabilidad sobre `GET /metrics`. Ver
+`Handoff_Semana3_Dashboard_ComoFunciona_Fixes.md` para el detalle técnico de esta
+ronda — incluye un fix crítico de latencia (HITL contaminaba el "camino limpio" del
+dashboard) y dos fixes de UI descubiertos corriendo la demo real contra el VPS.
 
 ---
 
@@ -25,7 +29,7 @@ Poner `ANTHROPIC_API_KEY`. El resto de valores funcionan tal cual para desarroll
 pip install -r requirements.txt
 ```
 
-Incluye `langgraph-checkpoint-postgres` (nuevo en Semana 2 — checkpointer real).
+Incluye `langgraph-checkpoint-postgres` (Semana 2 — checkpointer real).
 
 ### Paso 3 — Levantar Postgres
 
@@ -33,9 +37,8 @@ Incluye `langgraph-checkpoint-postgres` (nuevo en Semana 2 — checkpointer real
 docker compose up -d postgres
 ```
 
-**Si el volumen de Postgres ya existía de Semana 1**, correr la migración a mano
-(agrega `explanation`/`context`/columnas de idempotencia que `ADD COLUMN IF NOT
-EXISTS` no reaplica solo):
+**Si el volumen de Postgres ya existía de una ronda anterior**, correr la migración a
+mano (agrega columnas que `ADD COLUMN IF NOT EXISTS` no reaplica solo):
 
 ```bash
 docker compose exec -T postgres psql -U decisio -d decisio < app/db/init.sql
@@ -55,9 +58,9 @@ graph | compilado con checkpointer Postgres — interrupt()/resume habilitado
 DECISIO — online (HITL real con interrupt()/AsyncPostgresSaver)
 ```
 
-**autocommit=True es obligatorio** desde esta ronda — sin eso, `checkpointer.setup()`
-revienta porque sus migraciones corren `CREATE INDEX CONCURRENTLY`, que Postgres
-prohíbe dentro de una transacción explícita. Ver comentario en `app/db/connection.py`.
+**autocommit=True es obligatorio** — sin eso, `checkpointer.setup()` revienta porque
+sus migraciones corren `CREATE INDEX CONCURRENTLY`, que Postgres prohíbe dentro de una
+transacción explícita. Ver comentario en `app/db/connection.py`.
 
 ### Paso 5 — Test de las 8 rutas
 
@@ -65,9 +68,8 @@ prohíbe dentro de una transacción explícita. Ver comentario en `app/db/connec
 PYTHONPATH=. python tests/test_paths.py
 ```
 
-Debe dar `8/8 tests pasaron`. Los 4 perfiles de `hallazgo_menor`/staleness/anómalos
-quedan en `pending_human` — es esperado, ya no se auto-resuelven como en Semana 1
-placeholder. Para cerrarlos manualmente:
+Debe dar `8/8 tests pasaron`. Los perfiles de `hallazgo_menor`/staleness/anómalos
+quedan en `pending_human` — es esperado. Para cerrarlos manualmente:
 
 ```bash
 curl http://localhost:8000/cases                              # ver bandeja
@@ -77,6 +79,13 @@ curl -X POST http://localhost:8000/cases/{id}/resolve \
 ```
 
 `action` acepta `honor` / `adjust` (requiere `adjusted_amount`) / `revoke`.
+
+**Antes de un ensayo real**, limpiar datos de prueba viejos (quedan con
+clasificaciones de métricas de rondas anteriores):
+
+```sql
+TRUNCATE metrics, traces, cases, decisions;
+```
 
 ---
 
@@ -88,23 +97,48 @@ npm install
 npm run dev
 ```
 
-Abre `http://localhost:5173`. El dev server proxea `/decision`, `/cases`,
-`/trace`, `/metrics`, `/health` hacia `http://localhost:8000` (ver
-`vite.config.js`) — sin esto correr `npm run dev` solo, el fetch a rutas
-relativas no llega a ningún lado.
+Abre `http://localhost:5173`. El dev server proxea `/decision`, `/cases`, `/trace`,
+`/metrics`, `/health` hacia `http://localhost:8000` (ver `vite.config.js`) — sin esto
+correr `npm run dev` solo, el fetch a rutas relativas no llega a ningún lado.
 
-Dos vistas, switcheables desde el header:
-- **Vista cliente**: simula tocar la notificación push de uno de los 8 perfiles
-  curados (espejo exacto de `data/profiles.py` en `src/demoProfiles.js`) → oferta
-  con slider → verificación de identidad (contraseña, proxy de demo) → llamada
-  real a `POST /decision` → resultado con cronómetro real y comparativo Interbank.
-  Si el caso escala a un agente, hace polling real a `GET /decision/{id}` hasta
-  que se resuelve — sin websockets, fuera de alcance de la demo.
-- **Vista agente**: bandeja de casos pendientes (polling a `GET /cases`), detalle
-  con perfil completo del cliente + oferta + razonamiento AI, y resolución con un
-  clic (honrar / ajustar / revocar) contra `POST /cases/{id}/resolve`.
+`npm install` trae dos dependencias nuevas desde Semana 3: `recharts` (gráficos del
+dashboard) y `@fontsource/inter` (tipografía real de iO, auto-hospedada — nunca llama
+a Google Fonts en runtime, ver `main.jsx`).
 
-`npm run build` genera `dist/` — validado que compila limpio antes de esta entrega.
+Cuatro vistas, switcheables desde el header (píldoras en desktop, hamburguesa +
+desplegable en mobile):
+
+- **Cómo funciona** (`AboutView.jsx`): vista explicativa del proyecto DECISIO en sí
+  mismo — no simula la app de iO, así que lleva la identidad propia de Escai Tech
+  (copper/cyan/petróleo, tonos sólidos). Hero animado, staircase de los 6 nodos reales
+  del grafo, stats y compliance, todo con reveal-on-scroll.
+- **Vista cliente** (`ClienteView.jsx`): popup de redirección simulando el deep-link
+  real de la notificación push → elige uno de los perfiles curados (espejo de
+  `data/profiles.py` en `demoProfiles.js`) → oferta con slider → verificación de
+  identidad → llamada real a `POST /decision` → resultado con cronómetro real. Si el
+  caso escala a un agente, hace polling real a `GET /decision/{id}` hasta que se
+  resuelve. Paleta real de iO — mockup de teléfono con proporción real (19.5:9).
+- **Vista agente** (`AgenteView.jsx`): bandeja de casos pendientes (polling a
+  `GET /cases`), detalle con perfil completo + oferta + razonamiento AI (o, si el caso
+  escaló por un guardrail sin pasar por la AI, un panel distinto que lo deja explícito
+  en vez de mostrar un "sin confianza" indistinguible de un error), resolución con un
+  clic contra `POST /cases/{id}/resolve`.
+- **Dashboard** (`Dashboard.jsx`): observabilidad sobre `GET /metrics` — ring de
+  latencia real (solo camino automático, nunca mezclado con tiempo de espera humana),
+  tendencia, distribución por camino, guardrails disparados, resoluciones por agente,
+  feed en vivo. Paleta real de iO.
+
+`npm run build` genera `dist/` — validado que compila limpio antes de cada entrega de
+esta ronda (bundle final ~589KB / ~168KB gzip).
+
+### Logo de marca
+
+`frontend/public/brand/` es una carpeta con bind mount de solo lectura montada en
+`docker-compose.yml` sobre el contenedor de Nginx — subir `logo-io.svg` (o `.png`) ahí
+en el VPS se refleja con un refresh del navegador, **sin rebuild**. Instrucciones
+completas en `frontend/public/brand/README.md`. Mientras no se suba el archivo real,
+corre con un fallback (`logo-io-ring.png`, extraído del logo real de iO) — no se ve
+roto, no es el isotipo completo.
 
 ---
 
@@ -117,7 +151,7 @@ decisio-io/
 │   ├── graph/
 │   │   ├── state.py
 │   │   ├── graph.py                   # Compilación diferida + interrupt()/resume
-│   │   ├── checkpointer.py            # NUEVO — AsyncPostgresSaver sobre el pool compartido
+│   │   ├── checkpointer.py            # AsyncPostgresSaver sobre el pool compartido
 │   │   └── nodes/
 │   │       ├── ingest.py
 │   │       ├── bounds_check.py        # G1 (bounds monto) + G4 (inputs anómalos)
@@ -126,30 +160,40 @@ decisio-io/
 │   │       ├── ai_explainer.py
 │   │       ├── guardrails.py          # G2 (coherencia regla-AI) + G3 (confianza mínima)
 │   │       ├── auto_decision.py
-│   │       ├── human_in_loop.py       # REAL — interrupt() de LangGraph, ya no placeholder
-│   │       └── finalize.py
+│   │       ├── human_in_loop.py       # interrupt() real + escalation_reason con guardrails (Semana 3)
+│   │       └── finalize.py            # path por route, no por outcome (fix Semana 3)
 │   ├── api/
-│   │   ├── schemas.py                 # + CaseResolutionRequest (Semana 2)
+│   │   ├── schemas.py
 │   │   └── routes/
-│   │       ├── decision.py            # POST /decision + GET /decision/{id} (polling)
+│   │       ├── decision.py            # POST /decision + GET /decision/{id} + log identity_blocked
 │   │       ├── trace.py
-│   │       ├── metrics.py
-│   │       └── cases.py               # GET /cases + GET /cases/{id} + POST /cases/{id}/resolve
+│   │       ├── metrics.py             # extendido Semana 3: guardrails, agentes, n_auto/n_human
+│   │       └── cases.py
 │   └── db/
 │       ├── connection.py              # autocommit=True + get_pool()
-│       └── init.sql                   # + explanation, context (Semana 2)
-├── frontend/                          # NUEVO — Vite + React
+│       └── init.sql
+├── frontend/
 │   ├── vite.config.js
+│   ├── package.json                   # + recharts, @fontsource/inter
+│   ├── public/
+│   │   └── brand/                     # NUEVO — bind mount, logo sin rebuild
+│   │       ├── README.md
+│   │       └── logo-io-ring.png
 │   └── src/
-│       ├── App.jsx / App.css
-│       ├── api.js
+│       ├── main.jsx                   # imports de @fontsource/inter (auto-hospedado)
+│       ├── App.jsx                    # nav dual desktop/mobile, 4 vistas
+│       ├── App.css                    # paleta iO real + paleta Escai (about-view) + phone-frame + mobile
+│       ├── api.js                     # + getMetrics()
 │       ├── demoProfiles.js            # espejo de data/profiles.py
 │       └── components/
-│           ├── ClienteView.jsx
-│           └── AgenteView.jsx
+│           ├── AboutView.jsx          # NUEVO — vista explicativa, paleta Escai
+│           ├── BrandLogo.jsx          # NUEVO — cadena de fallback de logo
+│           ├── Dashboard.jsx          # NUEVO — observabilidad, paleta iO
+│           ├── ClienteView.jsx        # + step "intro" (popup de redirección)
+│           └── AgenteView.jsx         # fix input + panel guardrail-only
 ├── data/profiles.py
 ├── tests/test_paths.py
-├── docker-compose.yml
+├── docker-compose.yml                 # + bind mount frontend/public/brand
 ├── requirements.txt
 └── .env.example
 ```
@@ -164,7 +208,7 @@ decisio-io/
 | POST | `/decision` | Motor principal — puede volver `pending_human` (grafo pausado) |
 | GET | `/decision/{id}` | Polling de estado — para la vista cliente mientras espera agente |
 | GET | `/trace/{id}` | Trace completo de una decisión |
-| GET | `/metrics` | Métricas agregadas |
+| GET | `/metrics` | Métricas agregadas — extendido Semana 3 (ver Handoff §1.1) |
 | GET | `/cases` | Bandeja de casos pendientes, con contexto completo |
 | GET | `/cases/{id}` | Detalle de un caso |
 | POST | `/cases/{id}/resolve` | Reanuda el grafo — honor / adjust / revoke |
@@ -174,7 +218,7 @@ decisio-io/
 ## Flujo hacia el VPS
 
 ```bash
-git add . && git commit -m "feat: semana 2 — HITL real + frontend"
+git add . && git commit -m "feat: semana 3 — dashboard, cómo funciona, fixes HITL/mobile, rebrand real"
 git push
 
 # VPS
@@ -184,16 +228,24 @@ docker compose up -d --build
 ```
 
 El `.env` nunca entra al repo. Si algo no toma los cambios, `docker compose up -d
---build --force-recreate` (aprendizaje de la ronda anterior: el deploy silencioso
-es el enemigo real).
+--build --force-recreate`.
+
+**Después del primer deploy de esta ronda**, para reemplazar el logo real ya no hace
+falta rebuild — solo `scp` a `frontend/public/brand/logo-io.svg` en el VPS y refresh.
 
 ---
 
-## Semana 3 — lo que sigue
+## Semana 4 — lo que sigue
 
-- Dashboard de observabilidad (React) sobre `GET /metrics`
-- Trazabilidad completa por caso (timeline click-through) — hoy el trace de un
-  caso pendiente solo muestra la fila placeholder, el timeline detallado llega
-  con `finalize`, después de resolver
-- Despliegue al VPS: Nginx + HTTPS + dominio propio
-- Curación final de los perfiles de demo + guion de 15 min ensayado
+Ver Handoff_Semana3 §6 para el detalle completo. Resumen:
+
+1. Correr los dos fixes críticos de esta ronda (latencia HITL, guardrail-only sin AI)
+   contra el motor real — el primer caso HITL real post-deploy es la prueba de fuego.
+2. Trazabilidad completa por caso (timeline click-through) — sigue pendiente desde
+   Semana 2, diferida otra vez.
+3. Confirmar en logs del VPS que la idempotencia nunca re-invoca `run_decision()` en
+   un cache-hit — pendiente desde la ronda de auditoría.
+4. Truncar datos de prueba antes del ensayo (quedaron casos con clasificaciones viejas
+   de las rondas de fixes).
+5. Curación final de perfiles + guion de 15 min ensayado.
+6. Subir el logo SVG/PNG real de iO a `frontend/public/brand/`.
